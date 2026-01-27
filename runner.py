@@ -309,12 +309,13 @@ def runner(db: Session):
                         site_is_up = True
             
             # SSL token alert takes priority
-            if monitor_expiring_token and response is not None and ssl_days_remaining <= expiring_token_threshold:
-                if status != "token_alert":
-                    change_state(site_log, "token_alert", response_time, db, webhook_state, ssl_days_remaining)
-                else:
-                    update_last_scan_time(site_log, db, response_time, ssl_days_remaining)
-                continue
+            if (
+               monitor_expiring_token
+               and response is not None
+               and ssl_days_remaining is not None
+               and ssl_days_remaining <= expiring_token_threshold
+            ):
+
             
             # Check for slow response
             if response is not None and response_time >= slow_threshold and site_is_up:
