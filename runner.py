@@ -297,7 +297,7 @@ def runner(db: Session):
             ssl_days_remaining = 0
             if monitor_expiring_token and response is not None:
                 ssl_days_remaining = ssl_check(url)
-            
+                
             # Determine if site is technically up
             site_is_up = False
             if response is not None:
@@ -310,12 +310,13 @@ def runner(db: Session):
             
             # SSL token alert takes priority
             if (
-               monitor_expiring_token
-               and response is not None
-               and ssl_days_remaining is not None
-               and ssl_days_remaining <= expiring_token_threshold
+                monitor_expiring_token
+                and response is not None
+                and ssl_days_remaining is not None
+                and ssl_days_remaining <= expiring_token_threshold
             ):
-
+                print(f"SSL cert expiring soon for {url}: {ssl_days_remaining} days left")
+                notify_expiring_token(site, ssl_days_remaining)
             
             # Check for slow response
             if response is not None and response_time >= slow_threshold and site_is_up:
@@ -324,7 +325,7 @@ def runner(db: Session):
                 else:
                     update_last_scan_time(site_log, db, response_time, ssl_days_remaining)
                 continue
-
+            
             # Handle up/down status
             if site_log.status == "up" and site_is_up:
                 update_last_scan_time(site_log, db, response_time, ssl_days_remaining)
@@ -345,23 +346,3 @@ def runner(db: Session):
                     db.refresh(site_log)
                     
                     continue
-        else:
-            print(f"Skipping scan for {site['name']} - next scan in {time_until_next_scan:.1f} seconds")
-    
-    sleep_time = max(1, min(next_scan_time, runner_delay))
-    print(f"Putting runner to sleep for {sleep_time:.1f} seconds")
-    time.sleep(sleep_time)
-        
-
-if __name__ == "__main__":
-    try:
-        print("Starting Site Monitor Runner...")
-        db = SessionLocal()
-
-        while True:
-            runner(db)
-    except KeyboardInterrupt:
-        print("Shutting down Site Monitor Runner...")
-    finally:
-        db.close()
-        print("Runner stopped.")
